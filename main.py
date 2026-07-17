@@ -14,7 +14,7 @@ def main():
 def vehicle_process(env, vehicle, field, yard):
     while True:
         print(f"Vehicle fuel capacity {vehicle.tank.level}")
-        env.process(drive_from_yard_to_field_process(env, vehicle, field))
+        yield env.process(drive_from_yard_to_field_process(env, vehicle, field))
         # How do you start a process while env.run() is seet active? Events?
 
         
@@ -28,6 +28,7 @@ def drive_from_yard_to_field_process(env, vehicle, field):
         yield env.timeout(1)
         yield vehicle.tank.get(1 * vehicle.road_energy_demand)
         remaining_distance -= (1 * (vehicle.driving_speed/3.6))
+        print(remaining_distance)
 
         if remaining_distance <= 0:
             print(f"Reached the field.")
