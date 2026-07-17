@@ -3,8 +3,8 @@ import simpy
 def main():
     env = simpy.Environment()
 
-    vehicle = Vehicle(20, 5, simpy.Container(env, capacity=100, init=100), 10)
-    field = Field(10, 3)
+    vehicle = Vehicle(20, 5, simpy.Container(env, capacity=1000, init=1000), 100)
+    field = Field(10, 3000)
     yard = Yard(simpy.Container(env, capacity=1000, init=1000))
 
     env.process(vehicle_process(env, vehicle, field, yard))
@@ -14,26 +14,27 @@ def main():
 def vehicle_process(env, vehicle, field, yard):
     while True:
         print(f"Vehicle fuel capacity {vehicle.tank.level}")
-
-        energy, time = calculate_road_energy_time_demand(vehicle, field)
-
-        yield vehicle.tank.get(energy)
-        yield env.timeout(time)
+        env.process(drive_from_yard_to_field_process(env, vehicle, field))
+        # How do you start a process while env.run() is seet active? Events?
 
         
         if vehicle.tank.level == 0:
             False
 
 
-def calculate_road_energy_time_demand(vehicle, field):
-    distance = field.distance_to_yard
-    speed = vehicle.driving_speed
-    demand = vehicle.road_energy_demand
+def drive_from_yard_to_field_process(env, vehicle, field):
+    remaining_distance = field.distance_to_yard
+    while True:
+        yield env.timeout(1)
+        yield vehicle.tank.get(1 * vehicle.road_energy_demand)
+        remaining_distance -= (1 * (vehicle.driving_speed/3.6))
 
-    time = distance/speed
-    energy = demand * time
-
-    return energy, time
+        if remaining_distance <= 0:
+            print(f"Reached the field.")
+            False
+        if vehicle.tank.level == 0:
+            print(f"Vehciel fuel is empty")
+            False
 
 
 class Vehicle:
