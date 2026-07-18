@@ -3,56 +3,67 @@ import simpy
 def main():
     env = simpy.Environment()
 
-    vehicle = Vehicle(20, 5, simpy.Container(env, capacity=1000, init=1000), 100)
-    field = Field(10, 3000)
-    yard = Yard(simpy.Container(env, capacity=1000, init=1000))
+    vehicle = Vehicle(20, 5, simpy.Container(env, capacity=100, init=100), 100, 300)
+    field = Field(10, 3)
+    yard = Yard(simpy.Container(env, capacity=1000, init=1000), 0)
 
-    env.process(vehicle_process(env, vehicle, field, yard))
+    env.process(run_simulation(env, vehicle, field, yard))
     env.run()
 
 
-def vehicle_process(env, vehicle, field, yard):
+def run_simulation(env, vehicle, field, yard):
     while True:
         print(f"Vehicle fuel capacity {vehicle.tank.level}")
-        yield env.process(drive_from_yard_to_field_process(env, vehicle, field))
-        # How do you start a process while env.run() is seet active? Events?
 
-        
-        if vehicle.tank.level == 0:
-            False
-
-
-def drive_from_yard_to_field_process(env, vehicle, field):
-    remaining_distance = field.distance_to_yard
-    while True:
-        yield env.timeout(1)
-        yield vehicle.tank.get(1 * vehicle.road_energy_demand)
-        remaining_distance -= (1 * (vehicle.driving_speed/3.6))
-        print(remaining_distance)
-
-        if remaining_distance <= 0:
-            print(f"Reached the field.")
-            False
-        if vehicle.tank.level == 0:
-            print(f"Vehciel fuel is empty")
-            False
+        try:
+            yield env.process(vehicle.drive_from_yard_to_field(env, field, yard))
+        except simpy.Interrupt:
+            break
 
 
 class Vehicle:
-    def __init__(self, driving_speed, area_performance, tank, road_energy_demand):
+    def __init__(self, driving_speed, area_performance, tank, road_energy_demand, field_energy_demand):
         self.driving_speed = driving_speed
         self.area_performance = area_performance
         self.tank = tank
         self.road_energy_demand = road_energy_demand
+        self.field_energy_demand = field_energy_demand
+
+    def drive_from_yard_to_field(self, env, field, yard):
+        remaining_distance = abs(yard.coordinate - field.coordinate) * 1000
+        while True:
+
+            energy_demand = (self.road_energy_demand) * 1/1000
+
+            if energy_demand >= self.tank.level:
+                print(f"Vehciel fuel is empty")
+                raise simpy.Interrupt(None)
+
+            yield self.tank.get((self.road_energy_demand) * 1/1000)
+            yield env.timeout(1)
+
+
+
+            remaining_distance -= (self.driving_speed / 3.6)
+            print(remaining_distance)
+
+            if remaining_distance <= 0:
+                print(f"Reached the field.")
+                break
 
 class Field:
-    def __init__(self, field_area, distance_to_yard):
+    def __init__(self, field_area, coordinates):
         self.field_area = field_area
-        self.distance_to_yard = distance_to_yard
+        self.coordinates = coordinates
 
 class Yard:
-    def __init__(self, fuel_storage):
+    def __init__(self, fuel_storage, coordinates):
         self.fuel_storage = fuel_storage
+        self.coordinates = coordinates
+
+class Manager:
+    def __init__(self):
+        pass
 
 
 if __name__ == "__main__":
