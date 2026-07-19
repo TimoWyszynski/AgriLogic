@@ -23,14 +23,14 @@ class Vehicle:
             env,
             driving_speed,
             area_performance,
-            tank,
+            fuel_tank,
             road_energy_demand,
             field_energy_demand
         ):
         self.env = env
         self.driving_speed = driving_speed                  #km/h
         self.area_performance = area_performance            #ha/h
-        self.tank = tank                                    #L
+        self.fuel_tank = fuel_tank                          #L
         self.road_energy_demand = road_energy_demand        #L/h
         self.field_energy_demand = field_energy_demand      #L/ha
 
@@ -40,10 +40,10 @@ class Vehicle:
         time = distance / self.driving_speed
         energy = time * self.road_energy_demand
 
-        if energy >= self.tank.level:
+        if energy >= self.fuel_tank.level:
             raise simpy.Interrupt("Insufficient fuel to reach field.")
         
-        yield self.tank.get(energy)
+        yield self.fuel_tank.get(energy)
         yield env.timeout(time)
 
         print(f"Reached the field in {time} hours using {energy} liters Diesel.")
@@ -54,14 +54,21 @@ class Vehicle:
         time = field.field_area / self.area_performance
         energy = self.field_energy_demand * field.field_area
 
-        if energy >= self.tank.level:
+        if energy >= self.fuel_tank.level:
             raise simpy.Interrupt("Insufficient fuel to finish fieldwork.")
         
-        yield self.tank.get(energy)
+        yield self.fuel_tank.get(energy)
         yield env.timeout(time)
 
         print(f"Finished fieldwork in {time} hours using {energy} liters Diesel.")
         return
+    
+
+    def refuel_at_yard(self, yard):
+        to_refuel = self.fuel_tank.capacity - self.fuel_tank.level
+        yield yard.fuel_storage.get(to_refuel)
+        yield self.fuel_tank.put(to_refuel)
+        print(f"Refueled the vehicle with {to_refuel} liter diesel.")
 
 
 class Field:
@@ -86,7 +93,19 @@ class Manager:
 
     def simple_process(self):
         yield self.env.process(self.vehicle.drive_between_yard_and_field(self.env, self.field, self.yard))
-        yield self.env.process(self.vehicle.work_on_field(self.env, self.field))
+
+        while self.env.now <= 7:
+            
+            try:
+                yield self.env.process(self.vehicle.work_on_field(self.env, self.field))
+            except simpy.Interrupt:
+                yield self.env.process(self.vehicle.drive_between_yard_and_field(self.env, self.field, self.yard))
+                yield self.env.process(self.vehicle.refuel_at_yard(self.yard))
+                yield self.env.process(self.vehicle.drive_between_yard_and_field(self.env, self.field, self.yard))
+                yield self.env.process(self.vehicle.work_on_field(self.env, self.field))
+
+        print(f"End of workday.")
+
         yield self.env.process(self.vehicle.drive_between_yard_and_field(self.env, self.field, self.yard))
 
 
