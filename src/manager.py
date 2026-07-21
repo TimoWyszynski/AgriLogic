@@ -1,0 +1,24 @@
+import simpy
+
+class Manager:
+    def __init__(self, env, yard, fields, vehicle):
+        self.env = env
+        self.yard = yard
+        self.fields = fields
+        self.vehicle = vehicle
+
+    def simple_process(self):
+        remaining_fields = self.fields
+
+        yield self.env.process(self.vehicle.drive_between_yard_and_field(self.env, remaining_fields[0], self.yard))
+
+        for field in remaining_fields:                
+            try:
+                yield self.env.process(self.vehicle.work_on_field(self.env, field))
+            except simpy.Interrupt:
+                yield self.env.process(self.vehicle.drive_between_yard_and_field(self.env, field, self.yard))
+                yield self.env.process(self.vehicle.refuel_at_yard(self.yard))
+                yield self.env.process(self.vehicle.drive_between_yard_and_field(self.env, field, self.yard))
+                yield self.env.process(self.vehicle.work_on_field(self.env, field))
+
+        yield self.env.process(self.vehicle.drive_between_yard_and_field(self.env, remaining_fields[-1], self.yard))
