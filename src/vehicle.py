@@ -1,4 +1,5 @@
 import simpy
+import numpy as np
 
 class Vehicle:
     def __init__(
@@ -10,7 +11,7 @@ class Vehicle:
             road_energy_demand,
             field_energy_demand,
             set_up_time,
-            current_location=0
+            current_location=np.array((0, 0))
         ):
         self.env = env
         self.driving_speed = driving_speed                  #km/h
@@ -20,11 +21,11 @@ class Vehicle:
         self.field_energy_demand = field_energy_demand      #L/ha
         self.set_up_time = set_up_time                      #h
 
-        self.current_location = 0
+        self.current_location = current_location
 
 
     def drive_between_yard_and_field(self, env, field, yard):
-        distance = abs(yard.coordinates - field.coordinates)
+        distance = np.linalg.norm(yard.coordinates - field.coordinates)
         time = distance / self.driving_speed
         energy = time * self.road_energy_demand
 
@@ -34,10 +35,27 @@ class Vehicle:
         yield self.fuel_tank.get(energy)
         yield env.timeout(time)
 
-        print(f"Reached the field in {time} hours using {energy} liters Diesel.")
+        self.current_location = yard.coordinates
+
+        print(f"Driving between yard and field in {time} hours using {energy} liters Diesel.")
         return
     
+
+    def drive_between_field_and_field(self, env, field):
+        distance = np.linalg.norm(self.current_location - field.coordinates)
+        time = distance / self.driving_speed
+        energy = time * self.road_energy_demand
+
+        if energy >= self.fuel_tank.level:
+            raise simpy.Interrupt("Insufficient fuel to reach field.")
+        
+        yield self.fuel_tank.get(energy)
+        yield env.timeout(time)
+
+        print(f"Driving between field and field in {time} hours using {energy} liters Diesel.")
+        return
     
+
     def work_on_field(self, env, field):
         time = field.field_area / self.area_performance
         energy = self.field_energy_demand * field.field_area
@@ -47,6 +65,8 @@ class Vehicle:
         
         yield self.fuel_tank.get(energy)
         yield env.timeout(time)
+
+        field.is_processed = True
 
         print(f"Finished fieldwork in {time} hours using {energy} liters Diesel.")
         return

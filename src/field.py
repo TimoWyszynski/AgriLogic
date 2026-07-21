@@ -6,3 +6,5 @@ class Field:
         self.field_area = field_area
         self.coordinates = coordinates
         self.harvest = harvest
+
+        self.is_processed = False
