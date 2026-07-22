@@ -11,6 +11,11 @@ class Manager:
         self.end_of_day = 17
 
     def simple_process(self):
+
+        yield self.env.timeout(8)
+        print(f"Simulation starts at {self.env.now % 24} o'clock.")
+
+
         remaining_fields = self.fields
 
         yield self.env.process(self.vehicle.drive_between_yard_and_field(self.env, remaining_fields[0], self.yard))
@@ -25,6 +30,8 @@ class Manager:
                 yield self.env.process(self.vehicle.work_on_field(self.env, field))
 
         yield self.env.process(self.vehicle.drive_between_yard_and_field(self.env, remaining_fields[-1], self.yard))
+
+        print(f"Simulation ends at {self.env.now % 24} o'clock.")
 
 
     def skip_to_working_hours(self):
