@@ -9,10 +9,12 @@ class Manager:
 
         self.start_of_day = 8
         self.end_of_day = 17
+        self.days_worked = 1
+        self.env.process(self.count_days())
 
     def simple_process(self):
 
-        yield self.env.timeout(8)
+        yield self.env.process(self.skip_to_working_hours())
         print(f"Simulation starts at {self.env.now % 24} o'clock.")
 
 
@@ -31,7 +33,8 @@ class Manager:
 
         yield self.env.process(self.vehicle.drive_between_yard_and_field(self.env, remaining_fields[-1], self.yard))
 
-        print(f"Simulation ends at {self.env.now % 24} o'clock.")
+        print(f"Simulation ends  at {self.env.now % 24} o'clock.")
+        print(f"Worked for {self.days_worked} days and {self.env.now} hours.")
 
 
     def skip_to_working_hours(self):
@@ -39,3 +42,8 @@ class Manager:
         wait_time = (self.start_of_day - current_day_time) % 24
 
         yield self.env.timeout(wait_time)
+
+    def count_days(self):
+        while True:
+            yield self.env.timeout(24)
+            self.days_worked += 1
