@@ -44,20 +44,24 @@ class Manager:
         while remaining_fields:
             yield self.env.process(self.skip_to_working_hours())
 
-            if (self.vehicle.current_location == self.yard.coordinates).all():
-                yield self.env.process(self.vehicle.drive_between_yard_and_field(self.env, remaining_fields[0], self.yard))
-            else:
-                yield self.env.process(self.vehicle.drive_between_field_and_field(self.env, remaining_fields[0]))
+            while self.is_working_hours():
 
-            try:
-                yield self.env.process(self.vehicle.work_on_field(self.env, remaining_fields[0]))
-            except simpy.Interrupt:
-                yield self.env.process(self.vehicle.drive_between_yard_and_field(self.env, remaining_fields[0], self.yard))
-                yield self.env.process(self.vehicle.refuel_at_yard(self.yard))
-                yield self.env.process(self.vehicle.drive_between_yard_and_field(self.env, remaining_fields[0], self.yard))
-                yield self.env.process(self.vehicle.work_on_field(self.env, remaining_fields[0]))
+                if (self.vehicle.current_location == self.yard.coordinates).all():
+                    yield self.env.process(self.vehicle.drive_between_yard_and_field(self.env, remaining_fields[0], self.yard))
+                else:
+                    yield self.env.process(self.vehicle.drive_between_field_and_field(self.env, remaining_fields[0]))
 
-            remaining_fields = remaining_fields[1:]
+                try:
+                    yield self.env.process(self.vehicle.work_on_field(self.env, remaining_fields[0]))
+                except simpy.Interrupt:
+                    yield self.env.process(self.vehicle.drive_between_yard_and_field(self.env, remaining_fields[0], self.yard))
+                    yield self.env.process(self.vehicle.refuel_at_yard(self.yard))
+                    yield self.env.process(self.vehicle.drive_between_yard_and_field(self.env, remaining_fields[0], self.yard))
+                    yield self.env.process(self.vehicle.work_on_field(self.env, remaining_fields[0]))
+
+                remaining_fields = remaining_fields[1:]
+
+            yield self.env.process(self.vehicle.return_to_yard(self.env, self.yard))
 
         print(self.vehicle.current_location)
         yield self.env.process(self.vehicle.return_to_yard(self.env, self.yard)) 
@@ -75,3 +79,8 @@ class Manager:
         while True:
             yield self.env.timeout(24)
             self.days_worked += 1
+
+    
+    def is_working_hours(self):
+        current_time = self.env.now % 24
+        return True if 8 <= current_time <= 17 else False
