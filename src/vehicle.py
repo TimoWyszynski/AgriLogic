@@ -24,60 +24,32 @@ class Vehicle:
         self.current_location = current_location
 
 
-    def drive_between_yard_and_field(self, env, field, yard):
-        distance = np.linalg.norm(yard.coordinates - field.coordinates)
+    def drive_to(self, env, destination):
+        if destination.coordinates is None:
+            raise ValueError("Destination has no coordinates.")
+
+        distance = np.linalg.norm(self.current_location - destination.coordinates)
         time = distance / self.driving_speed
         energy = time * self.road_energy_demand
 
         if energy >= self.fuel_tank.level:
-            raise simpy.Interrupt("Insufficient fuel to reach field.")
-        
-        yield self.fuel_tank.get(energy)
+                raise simpy.Interrupt("Insufficient fuel to reach field.")
+
+        if energy > 0:
+            yield self.fuel_tank.get(energy)
         yield env.timeout(time)
 
-        self.current_location = field.coordinates
+        self.current_location = destination.coordinates
 
-        print(f"Driving between yard and field in {time} hours using {energy} liters Diesel.")
-        return
-    
-
-    def drive_between_field_and_field(self, env, field):
-        distance = np.linalg.norm(self.current_location - field.coordinates)
-        time = distance / self.driving_speed
-        energy = time * self.road_energy_demand
-
-        if energy >= self.fuel_tank.level:
-            raise simpy.Interrupt("Insufficient fuel to reach field.")
-        
-        yield self.fuel_tank.get(energy)
-        yield env.timeout(time)
-
-        self.current_location = field.coordinates
-
-        print(f"Driving between field and field in {time} hours using {energy} liters Diesel.")
-        return
-
-
-    def return_to_yard(self, env, yard):
-        distance = np.linalg.norm(self.current_location - yard.coordinates)
-        time = distance / self.driving_speed
-        energy = time * self.road_energy_demand
-
-        if energy >= self.fuel_tank.level:
-            raise simpy.Interrupt("Insufficient fuel to reach yard.")
-        
-        yield self.fuel_tank.get(energy)
-        yield env.timeout(time)
-
-        self.current_location = yard.coordinates
-
-        print(f"Returning to yard in {time} hours using {energy} liters Diesel.")
-        return
+        print(f"Driving to {destination.coordinates} in {time} hours using {energy} liters Diesel.")
 
 
     def work_on_field(self, env, field):
         time = field.field_area / self.area_performance
         energy = self.field_energy_demand * field.field_area
+
+        if energy >= self.fuel_tank.capacity:
+            raise ValueError("Fuel tank is to small.")
 
         if energy >= self.fuel_tank.level:
             raise simpy.Interrupt("Insufficient fuel to finish fieldwork.")
@@ -87,7 +59,7 @@ class Vehicle:
 
         field.is_processed = True
 
-        print(f"Finished fieldwork in {time} hours using {energy} liters Diesel.")
+        print(f"Finished field {field.field_id} in {time} hours using {energy} liters Diesel.")
         return
     
 
