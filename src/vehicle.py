@@ -22,6 +22,7 @@ class Vehicle:
         self.set_up_time = set_up_time                      #h
 
         self.current_location = current_location
+        self.fuel_safety_level = 0.1
 
 
     def drive_to(self, env, destination):
@@ -45,22 +46,23 @@ class Vehicle:
 
 
     def work_on_field(self, env, field):
-        time = field.field_area / self.area_performance
-        energy = self.field_energy_demand * field.field_area
+        time = (field.field_area * (1-field.progress_level)) / self.area_performance
+        energy = self.field_energy_demand * field.field_area * (1-field.progress_level)
+        availeable_energy = self.fuel_tank.level
 
-        if energy >= self.fuel_tank.capacity:
-            raise ValueError("Fuel tank is to small.")
-
-        if energy >= self.fuel_tank.level:
+        if energy >= availeable_energy:
+            progress_factor = availeable_energy/energy - self.fuel_safety_level
+            yield self.fuel_tank.get(energy * progress_factor)
+            yield env.timeout(time * progress_factor)
+            field.progress_level = progress_factor
+            print(f"Partly finished ({progress_factor*100}%) field {field.field_id} in {time * progress_factor} hours using {energy * progress_factor} liters Diesel.")
             raise simpy.Interrupt("Insufficient fuel to finish fieldwork.")
         
-        yield self.fuel_tank.get(energy)
-        yield env.timeout(time)
-
-        field.is_processed = True
-
-        print(f"Finished field {field.field_id} in {time} hours using {energy} liters Diesel.")
-        return
+        else:
+            yield self.fuel_tank.get(energy)
+            yield env.timeout(time)
+            field.is_processed = True
+            print(f"Finished field {field.field_id} in {time} hours using {energy} liters Diesel.")
     
 
     def refuel_at_yard(self, yard):
