@@ -25,17 +25,12 @@ class Manager:
                     yield self.env.process(self.vehicle.drive_to(self.env, self.fields[0]))
 
                 try:
-                    yield self.env.process(self.vehicle.set_up_vehicle(self.env))
                     yield self.env.process(self.vehicle.work_on_field(self.env, self.fields[0]))
-                    yield self.env.process(self.vehicle.set_up_vehicle(self.env))
                 except simpy.Interrupt:
-                    yield self.env.process(self.vehicle.set_up_vehicle(self.env))
                     yield self.env.process(self.vehicle.drive_to(self.env, self.yard))
                     yield self.env.process(self.vehicle.refuel_at_yard(self.yard))
                     yield self.env.process(self.vehicle.drive_to(self.env, self.fields[0]))
-                    yield self.env.process(self.vehicle.set_up_vehicle(self.env))
                     yield self.env.process(self.vehicle.work_on_field(self.env, self.fields[0]))
-                    yield self.env.process(self.vehicle.set_up_vehicle(self.env))
 
                 self.fields = self.fields[1:]
 
