@@ -1,6 +1,8 @@
 import simpy
+import numpy as np
+from dataclasses import dataclass
 
+@dataclass
 class Yard:
-    def __init__(self, fuel_storage, coordinates):
-        self.fuel_storage = fuel_storage
-        self.coordinates = coordinates
+    fuel_storage: simpy.Container
+    coordinates: np.array

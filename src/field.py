@@ -1,11 +1,13 @@
+from dataclasses import dataclass
+import numpy as np
 import simpy
 
+@dataclass
 class Field:
-    def __init__(self, field_id, field_area, coordinates, harvest):
-        self.field_id = field_id
-        self.field_area = field_area
-        self.coordinates = coordinates
-        self.harvest = harvest
-        
-        self.is_processed = False
-        self.progress_level = 0.0
+    field_id: int
+    field_area: int
+    coordinates: np.array
+    harvest: simpy.Container
+    
+    is_processed: bool = False
+    progress_level: float = 0.0

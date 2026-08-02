@@ -3,14 +3,14 @@ import numpy as np
 
 from src.field import Field
 from src.manager import Manager
-from src.vehicle import Vehicle
+from src.vehicle import Vehicle, VehicleType
 from src.yard import Yard
 
 def main():
     env = simpy.Environment()
 
     vehicle_tank = simpy.Container(env, capacity=450, init=450)
-    vehicle = Vehicle(env, 25, 5, vehicle_tank, 10, 15, 0.1)
+    vehicle = Vehicle(VehicleType.WORKING, env, 25, 5, vehicle_tank, 10, 15, 0.1)
 
     field_harvest = simpy.Container(env, 10, 10)
     field_1 = Field(1, 10, np.array((3, 5)), field_harvest)

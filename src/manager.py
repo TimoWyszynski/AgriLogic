@@ -1,7 +1,16 @@
 import simpy
+from src.yard import Yard
+from src.vehicle import Vehicle
+from src.field import Field
 
 class Manager:
-    def __init__(self, env, yard, fields, vehicle):
+    def __init__(
+            self,
+            env: simpy.Environment,
+            yard: Yard,
+            fields: list[Field],
+            vehicle: Vehicle
+        ):
         self.env = env
         self.yard = yard
         self.fields = fields

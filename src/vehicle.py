@@ -1,19 +1,32 @@
 import simpy
 import numpy as np
+from enum import Enum
+from src.field import Field
+from src.yard import Yard
+
+
+class VehicleType(Enum):
+    WORKING = "working"
+    APPLICATION = "application"
+    HARVESTER = "harvester"
+    TENDER = "tender"
+
 
 class Vehicle:
     def __init__(
             self,
-            env,
-            driving_speed,
-            area_performance,
-            fuel_tank,
-            road_energy_demand,
-            field_energy_demand,
-            set_up_time,
-            current_location=np.array((0, 0))
+            vehicle_type: VehicleType,
+            env: simpy.Environment,
+            driving_speed: float,
+            area_performance: float,
+            fuel_tank: simpy.Container,
+            road_energy_demand: float,
+            field_energy_demand: float,
+            set_up_time: float,
+            current_location: np.array = np.array((0, 0))
         ):
         self.env = env
+        self.vehicle_type = vehicle_type
         self.driving_speed = driving_speed                  #km/h
         self.area_performance = area_performance            #ha/h
         self.fuel_tank = fuel_tank                          #L
@@ -25,7 +38,7 @@ class Vehicle:
         self.fuel_safety_level = 0.1
 
 
-    def drive_to(self, env, destination):
+    def drive_to(self, env: simpy.Environment, destination: Field|Yard):
         if destination.coordinates is None:
             raise ValueError("Destination has no coordinates.")
 
@@ -45,7 +58,7 @@ class Vehicle:
         print(f"Driving to {destination.coordinates} in {time} hours using {energy} liters Diesel.")
 
 
-    def work_on_field(self, env, field):
+    def work_on_field(self, env: simpy.Environment, field: Field):
         time = (field.field_area * (1-field.progress_level)) / self.area_performance
         energy = self.field_energy_demand * field.field_area * (1-field.progress_level)
         availeable_energy = self.fuel_tank.level
@@ -69,13 +82,13 @@ class Vehicle:
             yield env.process(self.set_up_vehicle(env))
     
 
-    def refuel_at_yard(self, yard):
+    def refuel_at_yard(self, yard: Yard):
         to_refuel = self.fuel_tank.capacity - self.fuel_tank.level
         yield yard.fuel_storage.get(to_refuel)
         yield self.fuel_tank.put(to_refuel)
         print(f"Refueled the vehicle with {to_refuel} liter diesel.")
 
 
-    def set_up_vehicle(self, env):
+    def set_up_vehicle(self, env: simpy.Environment):
         yield env.timeout(self.set_up_time)
         print(f"Setting up vehicle for {self.set_up_time} hours.")
