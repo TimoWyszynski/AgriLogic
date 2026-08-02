@@ -2,6 +2,7 @@ import simpy
 from src.yard import Yard
 from src.vehicle import Vehicle
 from src.field import Field
+from src.job import Job
 
 class Manager:
     def __init__(
@@ -9,12 +10,12 @@ class Manager:
             env: simpy.Environment,
             yard: Yard,
             fields: list[Field],
-            vehicle: Vehicle
+            vehicles: list[Vehicle]
         ):
         self.env = env
         self.yard = yard
         self.fields = fields
-        self.vehicle = vehicle
+        self.vehicles = vehicles
 
         self.start_of_day = 8
         self.end_of_day = 17
@@ -28,23 +29,23 @@ class Manager:
 
             while self.is_working_hours() and self.fields:
 
-                if (self.vehicle.current_location == self.yard.coordinates).all():
-                    yield self.env.process(self.vehicle.drive_to(self.env, self.fields[0]))
+                if (self.vehicles[0].current_location == self.yard.coordinates).all():
+                    yield self.env.process(self.vehicles[0].drive_to(self.env, self.fields[0]))
                 else:
-                    yield self.env.process(self.vehicle.drive_to(self.env, self.fields[0]))
+                    yield self.env.process(self.vehicles[0].drive_to(self.env, self.fields[0]))
 
                 try:
-                    yield self.env.process(self.vehicle.work_on_field(self.env, self.fields[0]))
+                    yield self.env.process(self.vehicles[0].work_on_field(self.env, self.fields[0]))
                 except simpy.Interrupt:
-                    yield self.env.process(self.vehicle.drive_to(self.env, self.yard))
-                    yield self.env.process(self.vehicle.refuel_at_yard(self.yard))
-                    yield self.env.process(self.vehicle.drive_to(self.env, self.fields[0]))
-                    yield self.env.process(self.vehicle.work_on_field(self.env, self.fields[0]))
+                    yield self.env.process(self.vehicles[0].drive_to(self.env, self.yard))
+                    yield self.env.process(self.vehicles[0].refuel_at_yard(self.yard))
+                    yield self.env.process(self.vehicles[0].drive_to(self.env, self.fields[0]))
+                    yield self.env.process(self.vehicles[0].work_on_field(self.env, self.fields[0]))
 
                 self.fields = self.fields[1:]
 
-            yield self.env.process(self.vehicle.drive_to(self.env, self.yard))
-            yield self.env.process(self.vehicle.refuel_at_yard(self.yard))
+            yield self.env.process(self.vehicles[0].drive_to(self.env, self.yard))
+            yield self.env.process(self.vehicles[0].refuel_at_yard(self.yard))
             print("Workday finished")
             yield self.env.process(self.work())
 
@@ -62,6 +63,6 @@ class Manager:
             self.days_worked += 1
 
     
-    def is_working_hours(self):
+    def is_working_hours(self) -> bool:
         current_time = self.env.now % 24
         return True if 8 <= current_time <= 17 else False

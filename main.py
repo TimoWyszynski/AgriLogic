@@ -9,8 +9,35 @@ from src.yard import Yard
 def main():
     env = simpy.Environment()
 
-    vehicle_tank = simpy.Container(env, capacity=450, init=450)
-    vehicle = Vehicle(VehicleType.WORKING, env, 25, 5, vehicle_tank, 10, 15, 0.1)
+    vehicle_fuel_tank = simpy.Container(env, capacity=450, init=450)
+    vehicle_recources_tank = simpy.Container(env, capacity=4000, init=4000)
+    working_vehicle = Vehicle(
+        0,
+        VehicleType.WORKING,
+        env,
+        25,
+        5,
+        0,
+        vehicle_fuel_tank,
+        vehicle_recources_tank,
+        10,
+        15,
+        0.1
+    )
+    application_vehicle = Vehicle(
+        0,
+        VehicleType.APPLICATION,
+        env,
+        25,
+        5,
+        300,
+        vehicle_fuel_tank,
+        vehicle_recources_tank,
+        10,
+        15,
+        0.1
+    )
+    vehicles = [working_vehicle, application_vehicle]
 
     field_harvest = simpy.Container(env, 10, 10)
     field_1 = Field(1, 10, np.array((3, 5)), field_harvest)
@@ -26,7 +53,7 @@ def main():
 
     yard = Yard(simpy.Container(env, capacity=10000, init=10000), np.array((0, 0)))
 
-    manager = Manager(env, yard, fields, vehicle)
+    manager = Manager(env, yard, fields, vehicles)
 
     env.process(manager.work())
     env.run(until=20000)

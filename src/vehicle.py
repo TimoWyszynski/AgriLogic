@@ -15,27 +15,33 @@ class VehicleType(Enum):
 class Vehicle:
     def __init__(
             self,
+            vehicle_id: int,
             vehicle_type: VehicleType,
             env: simpy.Environment,
             driving_speed: float,
             area_performance: float,
+            application_rate: float,
             fuel_tank: simpy.Container,
+            recources_tank: simpy.Container,
             road_energy_demand: float,
             field_energy_demand: float,
             set_up_time: float,
             current_location: np.array = np.array((0, 0))
         ):
-        self.env = env
+        self.vehicle_id = vehicle_id
         self.vehicle_type = vehicle_type
+        self.env = env
         self.driving_speed = driving_speed                  #km/h
         self.area_performance = area_performance            #ha/h
+        self.application_rate = application_rate
         self.fuel_tank = fuel_tank                          #L
+        self.recources_tank = recources_tank                #L or Kg
         self.road_energy_demand = road_energy_demand        #L/h
         self.field_energy_demand = field_energy_demand      #L/ha
         self.set_up_time = set_up_time                      #h
 
         self.current_location = current_location
-        self.fuel_safety_level = 0.1
+        self.fuel_safety_level = 0.1                        #%
 
 
     def drive_to(self, env: simpy.Environment, destination: Field|Yard):
@@ -77,7 +83,6 @@ class Vehicle:
         else:
             yield self.fuel_tank.get(energy)
             yield env.timeout(time)
-            field.is_processed = True
             print(f"Finished field {field.field_id} in {time} hours using {energy} liters Diesel.")
             yield env.process(self.set_up_vehicle(env))
     

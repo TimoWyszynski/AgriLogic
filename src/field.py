@@ -8,6 +8,4 @@ class Field:
     field_area: int
     coordinates: np.array
     harvest: simpy.Container
-    
-    is_processed: bool = False
     progress_level: float = 0.0

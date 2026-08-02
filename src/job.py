@@ -1,4 +1,8 @@
 from enum import Enum
+from src.vehicle import Vehicle
+from src.field import Field
+from dataclasses import dataclass
+
 
 class ProcessStep(Enum):
     TILLAGE = "tillage"
@@ -7,9 +11,15 @@ class ProcessStep(Enum):
     PLANT_PROTECTION = "plant_protection"
     HARVEST = "harvest"
 
+
 class ProcessChain(Enum):
     WHEAT = "wheat"
 
+
+@dataclass
 class Job:
-    def __init__(self):
-        pass
+    process_chain: ProcessChain
+    process_step: ProcessStep
+    vehcile: Vehicle
+    field: Field
+    is_taken: bool = False
