@@ -3,7 +3,7 @@ import numpy as np
 
 from src.field import Field
 from src.manager import Manager
-from src.vehicle import Vehicle, VehicleType
+from src.vehicle import Vehicle, VehicleType, WorkingVehicle, ApplicationVehicle
 from src.yard import Yard
 
 def main():
@@ -11,31 +11,23 @@ def main():
 
     vehicle_fuel_tank = simpy.Container(env, capacity=450, init=450)
     vehicle_recources_tank = simpy.Container(env, capacity=4000, init=4000)
-    working_vehicle = Vehicle(
+    working_vehicle = WorkingVehicle(
         0,
-        VehicleType.WORKING,
         env,
-        25,
         5,
-        0,
         vehicle_fuel_tank,
-        vehicle_recources_tank,
         10,
-        15,
-        0.1
+        15
     )
-    application_vehicle = Vehicle(
+    application_vehicle = ApplicationVehicle(
         0,
-        VehicleType.APPLICATION,
         env,
-        25,
         5,
         300,
         vehicle_fuel_tank,
         vehicle_recources_tank,
         10,
-        15,
-        0.1
+        5,
     )
     vehicles = [working_vehicle, application_vehicle]
 
