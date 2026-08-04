@@ -22,4 +22,4 @@ class Job:
     process_step: ProcessStep
     vehcile: Vehicle
     field: Field
-    is_taken: bool = False
+    in_progress: bool = False

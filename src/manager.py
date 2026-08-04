@@ -1,8 +1,8 @@
 import simpy
 from src.yard import Yard
-from src.vehicle import Vehicle
+from src.vehicle import Vehicle, VehicleType
 from src.field import Field
-from src.job import Job
+from src.job import Job, ProcessChain, ProcessStep
 
 class Manager:
     def __init__(
@@ -21,6 +21,7 @@ class Manager:
         self.end_of_day = 17
         self.days_worked = 0
         self.env.process(self.count_days())
+        self.job_list = self.create_job_list()
 
 
     def work(self):
@@ -63,6 +64,13 @@ class Manager:
             self.days_worked += 1
 
     
-    def is_working_hours(self) -> bool:
+    def is_working_hours(self)->bool:
         current_time = self.env.now % 24
         return True if 8 <= current_time <= 17 else False
+
+
+    def create_job_list(self)->list[Job]:
+        job_list = []
+
+
+        return job_list
