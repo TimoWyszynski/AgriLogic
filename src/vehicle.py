@@ -66,10 +66,7 @@ class Vehicle:
     
 
     def refuel_at_yard(self, yard: Yard):
-        to_refuel = self.fuel_tank.capacity - self.fuel_tank.level
-        yield yard.fuel_storage.get(to_refuel)
-        yield self.fuel_tank.put(to_refuel)
-        print(f"Refueled the vehicle with {to_refuel} liter diesel.")
+        pass
 
 
     def set_up_vehicle(self, env: simpy.Environment):
@@ -106,26 +103,32 @@ class WorkingVehicle(Vehicle):
 
 
     def work_on_field(self, env: simpy.Environment, field: Field):
-            time = (field.field_area * (1-field.progress_level)) / self.area_performance
-            energy = self.field_energy_demand * field.field_area * (1-field.progress_level)
-            availeable_energy = self.fuel_tank.level
-    
+        time = (field.field_area * (1-field.progress_level)) / self.area_performance
+        energy = self.field_energy_demand * field.field_area * (1-field.progress_level)
+        availeable_energy = self.fuel_tank.level
+
+        yield env.process(self.set_up_vehicle(env))
+
+        if energy >= availeable_energy:
+            progress_factor = availeable_energy/energy - self.fuel_safety_level
+            yield self.fuel_tank.get(energy * progress_factor)
+            yield env.timeout(time * progress_factor)
+            field.progress_level = progress_factor
+            print(f"Partly finished ({progress_factor*100}%) field {field.field_id} in {time * progress_factor} hours using {energy * progress_factor} liters Diesel.")
             yield env.process(self.set_up_vehicle(env))
-    
-            if energy >= availeable_energy:
-                progress_factor = availeable_energy/energy - self.fuel_safety_level
-                yield self.fuel_tank.get(energy * progress_factor)
-                yield env.timeout(time * progress_factor)
-                field.progress_level = progress_factor
-                print(f"Partly finished ({progress_factor*100}%) field {field.field_id} in {time * progress_factor} hours using {energy * progress_factor} liters Diesel.")
-                yield env.process(self.set_up_vehicle(env))
-                raise simpy.Interrupt("Insufficient fuel to finish fieldwork.")
-            
-            else:
-                yield self.fuel_tank.get(energy)
-                yield env.timeout(time)
-                print(f"Finished field {field.field_id} in {time} hours using {energy} liters Diesel.")
-                yield env.process(self.set_up_vehicle(env))
+            raise simpy.Interrupt("Insufficient fuel to finish fieldwork.")
+        
+        else:
+            yield self.fuel_tank.get(energy)
+            yield env.timeout(time)
+            print(f"Finished field {field.field_id} in {time} hours using {energy} liters Diesel.")
+            yield env.process(self.set_up_vehicle(env))
+
+    def refuel_at_yard(self, yard: Yard):
+        to_refuel = self.fuel_tank.capacity - self.fuel_tank.level
+        yield yard.fuel_storage.get(to_refuel)
+        yield self.fuel_tank.put(to_refuel)
+        print(f"Refueled the vehicle with {to_refuel} liter diesel.")
 
 
 class ApplicationVehicle(Vehicle):
@@ -134,7 +137,7 @@ class ApplicationVehicle(Vehicle):
             vehicle_id,
             env,
             area_performance,
-            application_rate,
+            application_rate,            #l or kg per ha
             fuel_tank,
             recource_tank,
             road_energy_demand,
@@ -161,4 +164,41 @@ class ApplicationVehicle(Vehicle):
 
 
     def work_on_field(self, env: simpy.Environment, field: Field):
-        pass
+        time = (field.field_area * (1-field.progress_level)) / self.area_performance
+
+        energy = self.field_energy_demand * field.field_area * (1-field.progress_level)
+        availeable_energy = self.fuel_tank.level
+
+        recource = self.application_rate * field.field_area * (1-field.progress_level)
+        availeable_recource = self.recource_tank.level
+
+        yield env.process(self.set_up_vehicle(env))
+
+        if energy >= availeable_energy or recource >= availeable_recource:
+            progress_factor_energy = availeable_energy/energy - self.fuel_safety_level
+            progress_factor_recource = availeable_recource/recource
+            progress_factor = min(progress_factor_energy, progress_factor_recource)
+
+            yield self.fuel_tank.get(energy * progress_factor)
+            yield self.recource_tank.get(recource * progress_factor)
+            yield env.timeout(time * progress_factor)
+            field.progress_level = progress_factor
+            print(f"Partly finished ({progress_factor*100}%) field {field.field_id} in {time * progress_factor} hours using {energy * progress_factor} liters Diesel.")
+            yield env.process(self.set_up_vehicle(env))
+            raise simpy.Interrupt("Insufficient fuel or recource to finish fieldwork.")
+        
+        else:
+            yield self.fuel_tank.get(energy)
+            yield self.recource_tank.get(recource)
+            yield env.timeout(time)
+            print(f"Finished field {field.field_id} in {time} hours using {energy} liters Diesel and {recource} liters/kilograms of recources.")
+            yield env.process(self.set_up_vehicle(env))
+
+
+    def refuel_at_yard(self, yard: Yard):
+        to_refuel_energy = self.fuel_tank.capacity - self.fuel_tank.level
+        to_refuel_recource = self.recource_tank.capacity - self.recource_tank.level
+        yield yard.fuel_storage.get(to_refuel_energy)
+        yield self.fuel_tank.put(to_refuel_energy)
+        yield self.recource_tank.put(to_refuel_recource)
+        print(f"Refueled the vehicle with {to_refuel_energy} liter diesel and {to_refuel_recource} liters/kilograms recource.")

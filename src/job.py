@@ -20,6 +20,6 @@ class ProcessChain(Enum):
 class Job:
     process_chain: ProcessChain
     process_step: ProcessStep
-    vehcile: Vehicle
     field: Field
+    vehcile: Vehicle
     in_progress: bool = False

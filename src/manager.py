@@ -17,6 +17,9 @@ class Manager:
         self.fields = fields
         self.vehicles = vehicles
 
+        self.process_chains = [ProcessChain.WHEAT]
+        self.process_steps = [ProcessStep.TILLAGE, ProcessStep.SEEDING]
+
         self.start_of_day = 8
         self.end_of_day = 17
         self.days_worked = 0
@@ -25,28 +28,28 @@ class Manager:
 
 
     def work(self):
-        while self.fields:
+        while self.job_list:
             yield self.env.process(self.skip_to_working_hours())
 
-            while self.is_working_hours() and self.fields:
+            while self.is_working_hours() and self.job_list:
 
-                if (self.vehicles[0].current_location == self.yard.coordinates).all():
-                    yield self.env.process(self.vehicles[0].drive_to(self.env, self.fields[0]))
+                if (self.vehicles[1].current_location == self.yard.coordinates).all():
+                    yield self.env.process(self.vehicles[1].drive_to(self.env, self.job_list[0].field))
                 else:
-                    yield self.env.process(self.vehicles[0].drive_to(self.env, self.fields[0]))
+                    yield self.env.process(self.vehicles[1].drive_to(self.env, self.job_list[0].field))
 
                 try:
-                    yield self.env.process(self.vehicles[0].work_on_field(self.env, self.fields[0]))
+                    yield self.env.process(self.vehicles[1].work_on_field(self.env, self.job_list[0].field))
                 except simpy.Interrupt:
-                    yield self.env.process(self.vehicles[0].drive_to(self.env, self.yard))
-                    yield self.env.process(self.vehicles[0].refuel_at_yard(self.yard))
-                    yield self.env.process(self.vehicles[0].drive_to(self.env, self.fields[0]))
-                    yield self.env.process(self.vehicles[0].work_on_field(self.env, self.fields[0]))
+                    yield self.env.process(self.vehicles[1].drive_to(self.env, self.yard))
+                    yield self.env.process(self.vehicles[1].refuel_at_yard(self.yard))
+                    yield self.env.process(self.vehicles[1].drive_to(self.env, self.job_list[0].field))
+                    yield self.env.process(self.vehicles[1].work_on_field(self.env, self.job_list[0].field))
 
-                self.fields = self.fields[1:]
+                self.job_list = self.job_list[1:]
 
-            yield self.env.process(self.vehicles[0].drive_to(self.env, self.yard))
-            yield self.env.process(self.vehicles[0].refuel_at_yard(self.yard))
+            yield self.env.process(self.vehicles[1].drive_to(self.env, self.yard))
+            yield self.env.process(self.vehicles[1].refuel_at_yard(self.yard))
             print("Workday finished")
             yield self.env.process(self.work())
 
@@ -59,7 +62,7 @@ class Manager:
 
 
     def count_days(self):
-        while self.fields:
+        while self.job_list:
             yield self.env.timeout(24)
             self.days_worked += 1
 
@@ -72,5 +75,10 @@ class Manager:
     def create_job_list(self)->list[Job]:
         job_list = []
 
+        for process_chain in self.process_chains:
+            for process_step in self.process_steps:
+                for field in self.fields:
+                    new_job = Job(process_chain, process_step, field, self.vehicles[0])
+                    job_list.append(new_job)
 
         return job_list

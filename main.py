@@ -11,7 +11,7 @@ def main():
 
     vehicle_fuel_tank = simpy.Container(env, capacity=450, init=450)
     vehicle_recources_tank = simpy.Container(env, capacity=4000, init=4000)
-    working_vehicle = WorkingVehicle(
+    tillage_vehicle = WorkingVehicle(
         0,
         env,
         5,
@@ -19,7 +19,27 @@ def main():
         10,
         15
     )
-    application_vehicle = ApplicationVehicle(
+    seeding_vehicle = ApplicationVehicle(
+        0,
+        env,
+        5,
+        180,
+        vehicle_fuel_tank,
+        vehicle_recources_tank,
+        10,
+        5,
+    )
+    fertilization_vehicle = ApplicationVehicle(
+        0,
+        env,
+        5,
+        180,
+        vehicle_fuel_tank,
+        vehicle_recources_tank,
+        10,
+        5,
+    )
+    plant_protection_vehicle = ApplicationVehicle(
         0,
         env,
         5,
@@ -29,7 +49,7 @@ def main():
         10,
         5,
     )
-    vehicles = [working_vehicle, application_vehicle]
+    vehicles = [tillage_vehicle, seeding_vehicle, fertilization_vehicle, plant_protection_vehicle]
 
     field_harvest = simpy.Container(env, 10, 10)
     field_1 = Field(1, 10, np.array((3, 5)), field_harvest)
